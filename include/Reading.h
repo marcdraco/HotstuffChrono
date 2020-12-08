@@ -201,7 +201,7 @@ class Reading
   */
     uint8_t getCMACount()
     {
-      return (m_cmaCounter > static_cast<reading_t>(GRAPH_WIDTH)) ? GRAPH_WIDTH : static_cast<uint8_t>(m_cmaCounter);
+      return m_cmaCounter;
     }
 };
 

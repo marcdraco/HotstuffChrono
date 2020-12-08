@@ -101,6 +101,12 @@ class Display
     m_flash = C;
   }
 
+  colours_t getFlashInk()
+  {
+    return m_flash;
+  }
+
+
   /**
    * @brief Get the Paper object
    * 

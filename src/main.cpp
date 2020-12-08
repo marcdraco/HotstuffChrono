@@ -54,7 +54,6 @@
 MCUFRIEND_kbv screen;
 Display display;
 UniversalDHT dht22(DHT22_DATA);
-Graph graph;
 Reading humidity;
 Reading temperature;
 Fonts fonts;
@@ -71,7 +70,7 @@ Sevensegments segments(defaultInk);
 
 globalVariables globals;
 
-void showMinMax();
+void showTime();
 void showLargeReads();
 
 /**
@@ -89,10 +88,7 @@ void setup()
     ID = 0x9481; //force ID if write-only screen
   }
   screen.begin(ID);
-  humidity.setTrace(AZURE);       // humidity graph line
-  temperature.setTrace(YELLOW);   // temperature graph line
   fonts.setFont(static_cast<const gfxfont_t *>(&HOTSMALL));
-
 
   noInterrupts();                       // disable all interrupts
   TCCR1A = 0;
@@ -106,21 +102,23 @@ void setup()
   screen.setRotation(display.rotateLandscapeSouth); // possible values 0-3 for 0, 90, 180 and 270 degrees rotation
   screen.fillScreen(defaultPaper);
 
+/*  
   pinMode(DHT22_DATA, INPUT_PULLUP);    // keep the data pin from just hanging around
   pinMode(HEATER_RELAY, OUTPUT);        // signal to relay to switch on/off
   pinMode(SCALE_SWITCH, INPUT_PULLUP);  // optional switch to change to F from C on boot.
-  
+  */
+  pinMode(11, OUTPUT);
+  digitalWrite(11, HIGH);
+  pinMode(DHT22_DATA, INPUT_PULLUP);    // keep the data pin from just hanging around
+
   //(digitalRead(SCALE_SWITCH)) 
-  (0)? SETBIT(globals.gp, USEMETRIC) : CLEARBIT(globals.gp, USEMETRIC);
+  (USE_METRIC)? SETBIT(globals.gp, USEMETRIC) : CLEARBIT(globals.gp, USEMETRIC);
 
   readings_t read;
   delay(3000);
   dht22.read(&read.H, &read.T);
   temperature.initReads(read.T);
   humidity.initReads(read.H);
-  #ifdef USE_GRAPH
-  graph.drawGraph();
-  #endif
 }
 
 /**
@@ -136,25 +134,12 @@ void loop()
     Reading::takeReadings();
   }
 
-#ifdef USE_GRAPH
-  if (CHECKBIT(globals.ISR,  UPDATEGRAPH))
-  {
-    CLEARBIT(globals.ISR,  UPDATEGRAPH);
-    graph.drawGraph();
-  }
-#endif
-
-showMinMax();
-showLargeReads();
-
-/**
- * @brief Following here are the annunciators
- * 
- */
+  showLargeReads();
+  showTime();
 
   (CHECKBIT(globals.ISR,  FLASH)) ? display.setFlashInk(defaultInk) : display.setFlashInk(defaultPaper);
 
-  if (CHECKBIT(globals.ISR,  CLEARFROST | CLEARDAMP | CLEARDRY | CLEARHOT))
+  if (CHECKBIT(globals.ISR,  CLEARDAMP | CLEARDRY ))
   {
     if (CHECKBIT(globals.ISR,  CLEARDRY))
     {
@@ -170,23 +155,6 @@ showLargeReads();
       display.displaySmallBitmap(SYMX2, SYMY, 40, 40, (uint8_t *) symbolDamp);
     }
 
-  #ifdef INCUBATOR
-    if (CHECKBIT(globals.ISR,  CLEARFROST))
-    {
-      CLEARBIT(globals.ISR,  CLEARFROST);
-      display.setFlashInk(defaultPaper);
-      display.displaySmallBitmap(SYMX1, SYMY, 40, 40, (uint8_t *) symbolIce);
-    }
-
-    if (CHECKBIT(globals.ISR,  CLEARHOT))
-    {
-      CLEARBIT(globals.ISR,  CLEARHOT);
-      display.setFlashInk(defaultPaper);
-      display.displaySmallBitmap(SYMX1, SYMY, 40, 40, (uint8_t *) symbolHot);
-    }
-  #endif
-  } 
-
   if (CHECKBIT(globals.ISR,  FROST | DAMP | DRY | OVERTEMP))     
   {
     if (CHECKBIT(globals.ISR,  DAMP))
@@ -198,58 +166,8 @@ showLargeReads();
     {
       display.displaySmallBitmap(SYMX2, SYMY, 38, 40, (uint8_t *) symbolDry);
     }
-
-  #ifdef INCUBATOR
-    if (CHECKBIT(globals.ISR,  FROST))
-    {
-      display.displaySmallBitmap(SYMX1, SYMY, 40, 40, (uint8_t *) symbolIce);
-    }
-
-    if (flags.isSet(OVERTEMP))
-    {
-      display.displaySmallBitmap(SYMX1, SYMY, 40, 54, (uint8_t *) symbolHot);
-    }
-  #endif
   }
-}
-
-
-void showMinMax(void)
-{  
-
-  screen.setCursor(130, 53);
-  fonts.print(const_cast<char *>("Min"));
-  screen.setCursor(130, 73);
-  fonts.print(const_cast<char *>("Max"));
-
-  char b[10]; 
-
-  int8_t dp  = static_cast<int>(round((environment.magnusDewpoint())));
-  int8_t min = static_cast<int>(floor(temperature.getReading()));
-  int8_t max = static_cast<int>(ceil(temperature.getReading()));
-  
-  if (!(CHECKBIT(globals.gp, USEMETRIC)))
-  {
-    dp  = static_cast<int>(toFahrenheit(environment.magnusDewpoint()));
   }
-  
-  sprintf(b,"%2d", (min < -9) ? -9 : min);
-  segments.segmentedString(100, 38, b, 6, 0, 1, 12);
-
-  sprintf(b,"%2d", (max > 99) ? 99 : max);
-  segments.segmentedString(100, 58, b, 6, 0, 1, 12);
-
-  sprintf(b,"%2d", dp);
-  segments.segmentedString(70,  88, b, 6, 0, 1, 12);
-
-  min = static_cast<int>((floor(humidity.getRawReading())));
-  max = static_cast<int>((ceil(humidity.getRawReading())));
-
-  sprintf(b,"%2d", min);
-  segments.segmentedString(160, 38, b, 6, 0, 1, 12);
-
-  sprintf(b,"%2d", (max > 99)   ? 99 : max);
-  segments.segmentedString(160, 58, b, 6, 0, 1, 12);
 }
 
 
@@ -287,9 +205,8 @@ void showLargeReads()
     T = defaultInk;
     r = temperature.getReading();
   }
-
+char b[5];
 #ifdef STEADMAN
-  char b[5];
   colours_t ink;
   bool jumpTheShark = false;
   if (CHECKBIT(globals.gp, WARNDANGER))
@@ -359,6 +276,23 @@ void showLargeReads()
   {
     return;
   }
+#else 
+  sprintf(b, "%3d", static_cast<int>(r * 10));
+
+  segments.drawGlyph(0,   0, b[0], L1, L1, ROWS1, BIAS1);
+  segments.drawGlyph(50,  0, b[1], L1, L1, ROWS1, BIAS1);
+  segments.drawGlyph(100, 0, b[2], T1, T1, ROWS2, BIAS1);
+
+  if (CHECKBIT(globals.gp, USEMETRIC))
+  {
+    segments.drawGlyph(130, 0, 'C',  S1, S1, 1, 1);
+  }
+  else
+  {
+    segments.drawGlyph(130, 0, 'F',  S1, S1, 1, 1);
+  }
+  
+  segments.setLit(T, T);
 #endif 
 
   // Now the humidty, which only has an upper range stop of 99%
@@ -372,8 +306,32 @@ void showLargeReads()
   segments.drawGlyph(190,   0, b[0], L1, L1, ROWS1, BIAS1);
   segments.drawGlyph(240,   0, b[1], L1, L1, ROWS1, BIAS1);
   segments.drawPercent(290, 0, S1, 1, 1);
-
   segments.setLit(T, T);
+}
+
+void showTime()
+{
+  constexpr uint8_t L1    = 45;
+  constexpr uint8_t ROWS1 = 5;
+  constexpr uint8_t BIAS1 = 3;
+  constexpr uint8_t CLK_Y = 120;
+  colours_t flash = display.getFlashInk();
+  uint8_t hours;
+  uint8_t mins;
+  
+  hours = 12;
+  mins  = 32;
+  char b[3];
+  sprintf(b,"%2d", hours);
+  segments.drawGlyph(0,  CLK_Y,  b[0], L1, L1, ROWS1, BIAS1);
+  segments.drawGlyph(80, CLK_Y,  b[1], L1, L1, ROWS1, BIAS1);
+
+  screen.fillCircle(160, 165, 4, flash);
+  screen.fillCircle(160, 195, 4, flash);
+
+  sprintf(b,"%2d", mins);
+  segments.drawGlyph(170, CLK_Y, b[0], L1, L1, ROWS1, BIAS1);
+  segments.drawGlyph(250, CLK_Y, b[1], L1, L1, ROWS1, BIAS1);
 }
 
 /**

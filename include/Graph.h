@@ -52,16 +52,7 @@
 class Graph
 {
   private:
-    
-  #ifdef USE_GRAPH
-    uint8_t m_xStep    {27}; // X - reticle
-    uint8_t m_yStep    {20}; // Y reticle
-    uint8_t m_circular   {};  // counts the times the graph is updated
-
-    int16_t m_temperature[GRAPH_WIDTH] {};
-    int16_t m_humidity[GRAPH_WIDTH]    {};
-  #endif 
-
+  
   public:
 
   Graph() {};
