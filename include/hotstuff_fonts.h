@@ -27,20 +27,6 @@
 
 #include <types.h>
 
-// For most 320x 240 displays fonts above 36pt
-// will exceed the avaiable width but YMMV
-
-// included in the Hotstuff_Fonts.h - this must be available!
-// All fonts are called HotStuff like this suffixed with the appx.
-// point size although that's just a guide to size and Flash usage.
-// Larger fonts consume WAY more flash which is why we're limiting
-// the number of glyphs to ONLY what's absolutely necessary for
-// the display. 
-
-#include "fonts/dealerPlate-24.h"
-#define HOTLARGE HotStuff24
-
-//#include "fonts/sourceCodePro-6-full.h"
 #include "fonts/ubuntu-6-full.h"
 #define HOTSMALL HotStuff6
 
