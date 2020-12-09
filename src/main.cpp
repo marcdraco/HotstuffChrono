@@ -27,6 +27,8 @@
 @brief Main code
 */
 
+WIRING TO THE ICSP YOU DOLT!!!
+
 
 #include <Arduino.h>
 #include <math.h>
@@ -91,10 +93,10 @@ void setup()
   fonts.setFont(static_cast<const gfxfont_t *>(&HOTSMALL));
 
   noInterrupts();                       // disable all interrupts
-  TCCR1A = 0;
-  TCCR1B = 0;
+  TCCR1A  = 0;
+  TCCR1B  = 0;
 
-  TCNT1 = UPDATER;                      // pre-calculated re-read time.
+  TCNT1   = UPDATER;                    // pre-calculated re-read time.
   TCCR1B |= (1 << CS10) | (1 << CS12);  // 1024 prescaler (see header)
   TIMSK1 |= (1 << TOIE1);               // enable timer overflow interrupt ISR
   interrupts();                         // enable all interrupts
@@ -102,15 +104,11 @@ void setup()
   screen.setRotation(display.rotateLandscapeSouth); // possible values 0-3 for 0, 90, 180 and 270 degrees rotation
   screen.fillScreen(defaultPaper);
 
-/*  
+  
   pinMode(DHT22_DATA, INPUT_PULLUP);    // keep the data pin from just hanging around
   pinMode(HEATER_RELAY, OUTPUT);        // signal to relay to switch on/off
   pinMode(SCALE_SWITCH, INPUT_PULLUP);  // optional switch to change to F from C on boot.
-  */
-  pinMode(11, OUTPUT);
-  digitalWrite(11, HIGH);
-  pinMode(DHT22_DATA, INPUT_PULLUP);    // keep the data pin from just hanging around
-
+  
   //(digitalRead(SCALE_SWITCH)) 
   (USE_METRIC)? SETBIT(globals.gp, USEMETRIC) : CLEARBIT(globals.gp, USEMETRIC);
 

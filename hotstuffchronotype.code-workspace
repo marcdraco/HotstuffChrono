@@ -6,6 +6,10 @@
 		{
 			"name": "HotStuffChronotype",
 			"path": "."
+		},
+		{
+			"name": "HotStuff",
+			"path": "../HotStuff"
 		}
 	],
 	"settings": {}
